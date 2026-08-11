@@ -1,243 +1,345 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My 3D Runner Game</title>
+    <title>Sonu Prince 3D Runner Game</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
-            margin: 0; padding: 0; font-family: Arial, sans-serif;
-            background-color: #2c3e50; display: flex; justify-content: center;
-            align-items: center; height: 100vh; color: white; overflow: hidden;
+            margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a2e; display: flex; justify-content: center;
+            align-items: center; height: 100vh; overflow: hidden; color: white;
         }
 
         #game-container {
-            width: 360px; height: 640px; background-color: #87CEEB;
-            position: relative; border: 4px solid #34495e; border-radius: 15px;
-            overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            width: 360px; height: 640px;
+            position: relative; border: 4px solid #16213e; border-radius: 20px;
+            overflow: hidden; box-shadow: 0 15px 30px rgba(0,0,0,0.7); background: #000;
         }
 
-        /* --- LOBBY UI --- */
-        #lobby-ui { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 5; }
-        #top-bar { display: flex; justify-content: space-between; padding: 15px; background: rgba(0, 0, 0, 0.4); align-items: center; }
-        .menu-btn { background: #fff; color: #000; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .coin-box { background: #f1c40f; color: #000; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-        #character-area { height: 60%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        #dummy-3d-model { font-size: 80px; animation: bounce 2s infinite; }
-        .emote-text { background: rgba(0,0,0,0.6); padding: 5px 10px; border-radius: 10px; margin-top: 10px; font-size: 14px; }
-        #bottom-bar { position: absolute; bottom: 30px; width: 100%; text-align: center; }
-        #play-btn { background: #27ae60; color: white; border: none; padding: 15px 50px; font-size: 24px; font-weight: bold; border-radius: 30px; cursor: pointer; box-shadow: 0 5px 0 #2ecc71; }
-        #play-btn:active { transform: translateY(5px); box-shadow: 0 0 0 #2ecc71; }
-        
-        #side-menu { position: absolute; top: 0; left: -100%; width: 70%; height: 100%; background: #34495e; transition: 0.3s; padding: 20px; box-sizing: border-box; z-index: 10; }
+        /* 3D Canvas */
+        #three-canvas {
+            width: 100%; height: 100%; display: block;
+        }
+
+        /* Lobby UI Overlay */
+        #lobby-ui {
+            width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 10;
+            background: linear-gradient(180deg, rgba(15,52,96,0.8) 0%, rgba(26,26,46,0.9) 100%);
+            display: flex; flex-direction: column; justify-content: space-between; box-sizing: border-box;
+        }
+
+        #top-bar { display: flex; justify-content: space-between; padding: 15px; align-items: center; }
+        .menu-btn { background: #e94560; color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; border: none; }
+        .coin-box { background: #f1c40f; color: #000; padding: 8px 18px; border-radius: 20px; font-weight: bold; font-size: 18px; display: flex; align-items: center; gap: 5px; }
+
+        #character-area { text-align: center; margin-top: 50px; }
+        #dummy-3d-model { font-size: 90px; animation: bounce 1.5s infinite alternate; }
+        .emote-text { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 12px; display: inline-block; font-size: 14px; margin-top: 10px; }
+
+        #bottom-bar { text-align: center; margin-bottom: 40px; }
+        #play-btn { background: #00b4d8; color: white; border: none; padding: 16px 60px; font-size: 26px; font-weight: bold; border-radius: 40px; cursor: pointer; box-shadow: 0 6px 0 #0077b6; transition: 0.1s; }
+        #play-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #0077b6; }
+
+        /* Store Menu */
+        #side-menu { position: absolute; top: 0; left: -100%; width: 75%; height: 100%; background: #16213e; transition: 0.3s; padding: 20px; box-sizing: border-box; z-index: 20; }
         #side-menu.open { left: 0; }
-        .close-btn { color: red; float: right; cursor: pointer; font-weight: bold; font-size: 20px; }
-        .shop-item { background: #ecf0f1; color: #000; margin-top: 15px; padding: 15px; border-radius: 10px; text-align: center; font-weight: bold; }
+        .close-btn { color: #e94560; float: right; cursor: pointer; font-weight: bold; font-size: 22px; }
+        .shop-item { background: #0f3460; color: white; margin-top: 20px; padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; border: 1px solid #e94560; }
 
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
-
-        /* --- GAME PLAY UI --- */
-        #game-play-area {
-            width: 100%; height: 100%; background-color: #555; position: absolute; top: 0; left: 0; display: none; z-index: 4;
+        /* In-Game HUD */
+        #game-hud {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 15px; box-sizing: border-box;
+            display: none; justify-content: space-between; z-index: 5; pointer-events: none;
         }
+        .hud-item { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 15px; font-weight: bold; font-size: 18px; }
 
-        /* चलती हुई सड़क */
-        .road-stripes {
-            width: 15px; height: 1000%; background: repeating-linear-gradient(to bottom, white 0, white 50px, transparent 50px, transparent 100px);
-            position: absolute; left: 50%; transform: translateX(-50%); top: -900%;
-            animation: roadMove 2s linear infinite;
+        /* Touch Controls Area */
+        #controls-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; z-index: 6;
         }
-        @keyframes roadMove { 100% { top: 0; } }
+        .touch-left, .touch-right { width: 50%; height: 100%; float: left; }
 
-        /* प्लेयर (हमारा कैरेक्टर) */
-        #player {
-            font-size: 50px; position: absolute; bottom: 20px; left: 155px; /* बीच में */
-            transition: left 0.1s;
-        }
-
-        /* दुश्मन कारें */
-        .enemy-car {
-            width: 50px; height: 80px; background-color: #e74c3c; border-radius: 10px;
-            position: absolute; top: -100px;
-        }
-
-        /* लाइव स्कोर */
-        #score-board {
-            position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.6);
-            color: white; padding: 10px; border-radius: 10px; font-weight: bold; font-size: 18px;
-        }
-
-        /* मोबाइल कंट्रोल्स (स्क्रीन के दो हिस्से) */
-        #controls { width: 100%; height: 100%; position: absolute; top: 0; left: 0; display: flex; z-index: 10; }
-        .control-half { width: 50%; height: 100%; }
-
-        /* गेम ओवर स्क्रीन */
+        /* Game Over Popup */
         #game-over {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px;
-            text-align: center; display: none; z-index: 20; width: 80%;
+            background: rgba(22, 33, 62, 0.95); color: white; padding: 30px; border-radius: 15px;
+            text-align: center; display: none; z-index: 30; width: 75%; border: 2px solid #e94560;
         }
-        #restart-btn { background: #3498db; color: white; border: none; padding: 10px 20px; margin-top: 15px; font-size: 18px; border-radius: 10px; cursor: pointer; }
+        #restart-btn { background: #e94560; color: white; border: none; padding: 12px 30px; margin-top: 20px; font-size: 20px; border-radius: 10px; cursor: pointer; font-weight: bold; }
+
+        @keyframes bounce { 0% { transform: translateY(0); } 100% { transform: translateY(-15px); } }
     </style>
 </head>
 <body>
 
     <div id="game-container">
-        
-        <!-- लॉबी -->
+        <canvas id="three-canvas"></canvas>
+
+        <div id="game-hud">
+            <div class="hud-item" style="color:#f1c40f;">🪙 <span id="game-coins">0</span></div>
+            <div class="hud-item">🏆 <span id="game-score">0</span></div>
+        </div>
+
+        <div id="controls-overlay">
+            <div class="touch-left" onclick="moveLeft()"></div>
+            <div class="touch-right" onclick="moveRight()"></div>
+        </div>
+
         <div id="lobby-ui">
             <div id="side-menu">
-                <span class="close-btn" onclick="toggleMenu()">X Close</span>
-                <h2 style="color: white; margin-top: 0;">Store 🛒</h2>
-                <div class="shop-item">👕 Buy Clothes (Ad)</div>
-                <div class="shop-item">🕺 Buy Emotes</div>
+                <span class="close-btn" onclick="toggleMenu()">✖</span>
+                <h2 style="color: #e94560; margin-top: 10px;">Store 🛒</h2>
+                <div class="shop-item">👕 Buy Outfit (50 Coins)</div>
+                <div class="shop-item">🕺 Buy Emote (100 Coins)</div>
             </div>
             <div id="top-bar">
-                <div class="menu-btn" onclick="toggleMenu()">≡ More</div>
-                <div class="coin-box">🟡 <span id="lobby-coins">0</span></div>
+                <button class="menu-btn" onclick="toggleMenu()">≡ More</button>
+                <div class="coin-box">🟡 <span id="total-coins">0</span></div>
             </div>
             <div id="character-area">
                 <div id="dummy-3d-model">🧍</div>
-                <div class="emote-text">Ready to Run!</div>
+                <div class="emote-text">3D Runner Ready!</div>
             </div>
             <div id="bottom-bar">
                 <button id="play-btn" onclick="startGame()">PLAY</button>
             </div>
         </div>
 
-        <!-- गेम प्ले एरिया -->
-        <div id="game-play-area">
-            <div class="road-stripes"></div>
-            <div id="score-board">Score: <span id="score">0</span></div>
-            <div id="player">🧍</div>
-            
-            <!-- टच कंट्रोल्स -->
-            <div id="controls">
-                <div class="control-half" onclick="movePlayer('left')"></div>
-                <div class="control-half" onclick="movePlayer('right')"></div>
-            </div>
-        </div>
-
-        <!-- गेम ओवर -->
         <div id="game-over">
-            <h2>Game Over!</h2>
-            <p>Your Score: <span id="final-score">0</span></p>
-            <button id="restart-btn" onclick="location.reload()">Back to Lobby</button>
+            <h2 style="color:#e94560; margin-top:0;">GAME OVER</h2>
+            <p>Collected Coins: <span id="final-coins" style="color:#f1c40f; font-weight:bold;">0</span></p>
+            <p>Distance Score: <span id="final-score" style="font-weight:bold;">0</span></p>
+            <button id="restart-btn" onclick="resetToLobby()">LOBBY</button>
         </div>
-
     </div>
 
     <script>
-        let isGameRunning = false;
+        // Total Coins saved in local storage
+        let totalCoins = parseInt(localStorage.getItem('sonu_runner_coins') || '0');
+        document.getElementById('total-coins').innerText = totalCoins;
+
+        let isPlaying = false;
         let score = 0;
-        let player = document.getElementById('player');
-        let gameArea = document.getElementById('game-play-area');
-        let scoreText = document.getElementById('score');
-        
-        // प्लेयर की पोजीशन (तीन लेन: Left, Center, Right)
-        let playerX = 155; 
-        
+        let coinsCollectedCurrent = 0;
+        let currentLane = 1; // 0: Left, 1: Center, 2: Right
+        let lanesX = [-1.8, 0, 1.8]; // 3D X coordinates
+
+        // Three.js Variables
+        let scene, camera, renderer;
+        let playerMesh, roadMesh;
+        let cars = [], coins = [];
+        let spawnTimer = 0;
+
         function toggleMenu() {
-            const menu = document.getElementById('side-menu');
-            menu.classList.toggle('open');
+            document.getElementById('side-menu').classList.toggle('open');
         }
 
-        // गेम स्टार्ट करने का फंक्शन
-        function startGame() {
-            document.getElementById('lobby-ui').style.display = 'none';
-            document.getElementById('game-play-area').style.display = 'block';
-            isGameRunning = true;
-            score = 0;
-            spawnEnemies();
-            updateScore();
-        }
+        // Initialize Three.js 3D World
+        function init3D() {
+            const canvas = document.getElementById('three-canvas');
 
-        // मोबाइल के लिए लेफ्ट-राइट मूवमेंट
-        function movePlayer(direction) {
-            if (!isGameRunning) return;
-            if (direction === 'left' && playerX > 50) {
-                playerX -= 100; // बायीं लेन में जाएँ
-            } else if (direction === 'right' && playerX < 250) {
-                playerX += 100; // दायीं लेन में जाएँ
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 10, 35);
+
+            camera = new THREE.PerspectiveCamera(60, 360 / 640, 0.1, 100);
+            camera.position.set(0, 3.5, 6);
+            camera.lookAt(0, 1, -5);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(360, 640);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            scene.add(dirLight);
+
+            // 3D Road
+            const roadGeo = new THREE.PlaneGeometry(6, 100);
+            const roadMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            roadMesh = new THREE.Mesh(roadGeo, roadMat);
+            roadMesh.rotation.x = -Math.PI / 2;
+            roadMesh.position.z = -40;
+            scene.add(roadMesh);
+
+            // Road Lane Dividers
+            for (let i = 0; i < 20; i++) {
+                const lineGeo = new THREE.PlaneGeometry(0.15, 2);
+                const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const lineLeft = new THREE.Mesh(lineGeo, lineMat);
+                lineLeft.rotation.x = -Math.PI / 2;
+                lineLeft.position.set(-0.9, 0.01, -i * 5);
+                scene.add(lineLeft);
+
+                const lineRight = lineLeft.clone();
+                lineRight.position.x = 0.9;
+                scene.add(lineRight);
             }
-            player.style.left = playerX + 'px';
+
+            // 3D Player Character
+            const bodyGeo = new THREE.BoxGeometry(0.8, 1.4, 0.6);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x00b4d8 });
+            playerMesh = new THREE.Mesh(bodyGeo, bodyMat);
+            
+            // Player Head
+            const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcd94 });
+            const headMesh = new THREE.Mesh(headGeo, headMat);
+            headMesh.position.y = 0.9;
+            playerMesh.add(headMesh);
+
+            playerMesh.position.set(lanesX[currentLane], 0.7, 1);
+            scene.add(playerMesh);
+
+            animate();
         }
 
-        // कीबोर्ड से खेलने के लिए (अगर कंप्यूटर पर टेस्ट कर रहे हैं)
+        // Spawn 3D Cars
+        function spawnCar() {
+            const laneIndex = Math.floor(Math.random() * 3);
+            const carGeo = new THREE.BoxGeometry(1.2, 0.9, 2.2);
+            const carMat = new THREE.MeshStandardMaterial({ color: 0xe94560 });
+            const car = new THREE.Mesh(carGeo, carMat);
+
+            const roofGeo = new THREE.BoxGeometry(1.0, 0.6, 1.2);
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x0f3460 });
+            const roof = new THREE.Mesh(roofGeo, roofMat);
+            roof.position.y = 0.6;
+            car.add(roof);
+
+            car.position.set(lanesX[laneIndex], 0.45, -30);
+            scene.add(car);
+            cars.push(car);
+        }
+
+        // Spawn 3D Coins
+        function spawnCoin() {
+            const laneIndex = Math.floor(Math.random() * 3);
+            const coinGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.1, 16);
+            const coinMat = new THREE.MeshStandardMaterial({ color: 0xf1c40f, metalness: 0.8, roughness: 0.2 });
+            const coin = new THREE.Mesh(coinGeo, coinMat);
+            coin.rotation.x = Math.PI / 2;
+            coin.position.set(lanesX[laneIndex], 0.6, -30);
+            scene.add(coin);
+            coins.push(coin);
+        }
+
+        // Controls
+        function moveLeft() {
+            if (!isPlaying) return;
+            if (currentLane > 0) currentLane--;
+        }
+
+        function moveRight() {
+            if (!isPlaying) return;
+            if (currentLane < 2) currentLane++;
+        }
+
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft') movePlayer('left');
-            if (e.key === 'ArrowRight') movePlayer('right');
+            if (e.key === 'ArrowLeft') moveLeft();
+            if (e.key === 'ArrowRight') moveRight();
         });
 
-        // दुश्मन कारें बनाने का लॉजिक
-        function spawnEnemies() {
-            if (!isGameRunning) return;
+        // 3D Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
 
-            let enemy = document.createElement('div');
-            enemy.classList.add('enemy-car');
-            
-            // कार को 3 लेन में से किसी एक में रैंडम जगह से निकालें
-            let lanes = [55, 155, 255]; 
-            let randomLane = lanes[Math.floor(Math.random() * lanes.length)];
-            enemy.style.left = randomLane + 'px';
-            enemy.style.top = '-100px';
-            
-            gameArea.appendChild(enemy);
+            if (isPlaying) {
+                score++;
+                document.getElementById('game-score').innerText = Math.floor(score / 5);
 
-            let enemySpeed = 5;
-            
-            // कार को नीचे लाने का लूप
-            let moveEnemy = setInterval(() => {
-                if (!isGameRunning) {
-                    clearInterval(moveEnemy);
-                    return;
+                // Smooth lane movement
+                playerMesh.position.x += (lanesX[currentLane] - playerMesh.position.x) * 0.2;
+                playerMesh.position.y = 0.7 + Math.sin(score * 0.3) * 0.08; // Running Effect
+
+                spawnTimer++;
+                if (spawnTimer % 60 === 0) spawnCar();
+                if (spawnTimer % 45 === 0) spawnCoin();
+
+                // Move Cars & Check Collision
+                for (let i = cars.length - 1; i >= 0; i--) {
+                    cars[i].position.z += 0.35;
+
+                    if (Math.abs(cars[i].position.z - playerMesh.position.z) < 1.2 &&
+                        Math.abs(cars[i].position.x - playerMesh.position.x) < 0.8) {
+                        triggerGameOver();
+                    }
+
+                    if (cars[i].position.z > 5) {
+                        scene.remove(cars[i]);
+                        cars.splice(i, 1);
+                    }
                 }
 
-                let enemyTop = parseInt(window.getComputedStyle(enemy).getPropertyValue('top'));
-                enemy.style.top = (enemyTop + enemySpeed) + 'px';
+                // Move Coins & Collect Logic
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    coins[i].position.z += 0.35;
+                    coins[i].rotation.z += 0.08; // Coin Spin
 
-                // कोलिजन (टकराने) का चेक
-                let playerRect = player.getBoundingClientRect();
-                let enemyRect = enemy.getBoundingClientRect();
+                    // Collect Coin Check
+                    if (Math.abs(coins[i].position.z - playerMesh.position.z) < 1.0 &&
+                        Math.abs(coins[i].position.x - playerMesh.position.x) < 0.8) {
+                        
+                        coinsCollectedCurrent++;
+                        totalCoins++;
+                        document.getElementById('game-coins').innerText = coinsCollectedCurrent;
+                        
+                        scene.remove(coins[i]);
+                        coins.splice(i, 1);
+                        continue;
+                    }
 
-                if (
-                    playerRect.left < enemyRect.right &&
-                    playerRect.right > enemyRect.left &&
-                    playerRect.top < enemyRect.bottom &&
-                    playerRect.bottom > enemyRect.top
-                ) {
-                    gameOver();
-                    clearInterval(moveEnemy);
+                    if (coins[i].position.z > 5) {
+                        scene.remove(coins[i]);
+                        coins.splice(i, 1);
+                    }
                 }
+            }
 
-                // कार स्क्रीन से बाहर चली जाए तो उसे डिलीट कर दें
-                if (enemyTop > 640) {
-                    enemy.remove();
-                    clearInterval(moveEnemy);
-                }
-            }, 20);
-
-            // हर 1.5 सेकंड में नई कार बनाएँ
-            setTimeout(spawnEnemies, 1500);
+            renderer.render(scene, camera);
         }
 
-        // स्कोर बढ़ाने का लॉजिक
-        function updateScore() {
-            if (!isGameRunning) return;
-            score += 1;
-            scoreText.innerText = score;
-            setTimeout(updateScore, 500);
+        function startGame() {
+            document.getElementById('lobby-ui').style.display = 'none';
+            document.getElementById('game-hud').style.display = 'flex';
+            document.getElementById('controls-overlay').style.display = 'block';
+
+            score = 0;
+            coinsCollectedCurrent = 0;
+            currentLane = 1;
+            document.getElementById('game-coins').innerText = '0';
+            
+            cars.forEach(c => scene.remove(c));
+            coins.forEach(c => scene.remove(c));
+            cars = []; coins = [];
+
+            isPlaying = true;
         }
 
-        // गेम ओवर लॉजिक
-        function gameOver() {
-            isGameRunning = false;
+        function triggerGameOver() {
+            isPlaying = false;
+            localStorage.setItem('sonu_runner_coins', totalCoins.toString());
+            document.getElementById('total-coins').innerText = totalCoins;
+
+            document.getElementById('controls-overlay').style.display = 'none';
             document.getElementById('game-over').style.display = 'block';
-            document.getElementById('final-score').innerText = score;
-            
-            // सारी गाड़ियां रोक दें
-            document.querySelectorAll('.enemy-car').forEach(car => car.remove());
+            document.getElementById('final-coins').innerText = coinsCollectedCurrent;
+            document.getElementById('final-score').innerText = Math.floor(score / 5);
         }
+
+        function resetToLobby() {
+            document.getElementById('game-over').style.display = 'none';
+            document.getElementById('game-hud').style.display = 'none';
+            document.getElementById('lobby-ui').style.display = 'flex';
+        }
+
+        window.onload = init3D;
     </script>
 </body>
 </html>
